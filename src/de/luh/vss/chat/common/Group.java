@@ -20,7 +20,7 @@ public class Group {
     private String name;
     private User admin;
     private List<String> groupInterests;
-    private Set<User> groupMembers = new HashSet<>();;  // Sammlung aller Gruppenmitglieder
+    private Set<User> groupMembers = new HashSet<>();  // Sammlung aller Gruppenmitglieder
 
     // Generiert Gruppe mit Gruppennamen, Themen bzw. Interessen der Gruppe sowie einem Administrator,
     // welcher das erste Mitglied der Gruppe darstellt
@@ -60,6 +60,11 @@ public class Group {
     // Entfernt Interesse aus Liste
     public void removeInterest(String interest){
         groupInterests.remove(interest);
+    }
+
+    // Gibt alle Member der gruppe zurück
+    public Set<User> getMembers(){
+        return groupMembers;
     }
 
     // Fügt einen Benutzer zur Gruppe hinzu
