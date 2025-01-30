@@ -8,6 +8,8 @@ import java.net.InetSocketAddress;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
+import de.luh.vss.chat.common.Message.ChatMessage;
 import de.luh.vss.chat.common.Message.GroupMessage;
 
 /*
@@ -53,13 +55,32 @@ public class Group {
 
 	// Fügt eine Interesse zur Liste hinzu
 	public void addInterest(String interest){
+        if(groupInterests == null){
+            groupInterests.add(interest);
+        }
+        for(String check : groupInterests){
+            if(check == interest){
+                System.out.println("Interest already in list");
+                return;
+            }
+        }
 		groupInterests.add(interest);
 	}
 
 
-    // Entfernt Interesse aus Liste
+    // Entfernt Interesse aus Liste, sofern vorhanden 
     public void removeInterest(String interest){
-        groupInterests.remove(interest);
+        if(groupInterests == null){
+            System.out.println("no interest in list");
+            return;
+        }
+        for(String check : groupInterests){
+            if(check == interest){
+                groupInterests.remove(interest);
+                return;
+            }
+        }
+        System.out.println("interest not in list");
     }
 
     // Gibt alle Member der gruppe zurück
@@ -67,14 +88,33 @@ public class Group {
         return groupMembers;
     }
 
-    // Fügt einen Benutzer zur Gruppe hinzu
+    // Fügt einen Benutzer zur Gruppe hinzu, stellt sicher, dass noch nicht in Gruppe 
     public void addMember(User user) {
+        if(groupMembers == null){
+            groupMembers.add(user);
+        }
+        for(User check : groupMembers){
+            if(check == user){
+                System.out.println("User already in Group");
+                return;
+            }
+        }
         groupMembers.add(user);
     }
 
-    // Entfernt einen Benutzer aus der Gruppe
+    // Entfernt einen Benutzer aus der Gruppe, außer admin
     public void removeMember(User user) {
-        groupMembers.remove(user);
+        if(user == admin){
+            System.out.println("admin can not be removed from group");
+            return;
+        }
+        for(User check : groupMembers){
+            if(check == user){
+                groupMembers.remove(user);
+                return;
+            }
+        }
+        System.out.println("User already not in Group");
     }
 
     // Prüft, ob Nachricht und Sender valide sind und ob Liste an Member nicht leer ist und initiiert senden an Gruppe
@@ -91,9 +131,9 @@ public class Group {
         }
         
         // Verarbeitung der Nachricht
-        if (message instanceof GroupMessage) {    
+        if (message instanceof ChatMessage) {    
             // Weiterleitung der Nachricht an die Gruppenmitglieder
-            forwardMessageToGroupMembers(message.toString(), sender);
+            forwardMessageToGroupMembers(message.toString().substring(31), sender);
         }
     }    
 
