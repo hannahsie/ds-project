@@ -1,94 +1,85 @@
 package de.luh.vss.chat.common;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.util.*;
 
-import de.luh.vss.chat.common.Message.ChatMessage;
-
-
-/*
- * Klasse zum Überprüfen, ob ein User oder eine Gruppe die selben Interessen teilt
- * wenn dem so ist, wird automatisch eine Anfrage an jeweiligen User/Gruppe gesendet
- */
 public class PeerDiscoveryService {
-    // Prüft, ob User gesuchte Interesse teilt
-    public User peer(String search, User user){
-        for(String interest: user.getInterests()){
-            if(interest.equals(search)){
-                sendUserRequest(user);
-                return user;
+    private static final int CACHE_SIZE = 10; // Maximale Cache-Größe
+
+    // LRU-Cache für User- und Gruppen-Discovery
+    private final Map<String, List<User>> userCache = new LinkedHashMap<>(CACHE_SIZE, 0.75f, true) {
+        protected boolean removeEldestEntry(Map.Entry<String, List<User>> eldest) {
+            return size() > CACHE_SIZE;
+        }
+    };
+
+    private final Map<String, List<Group>> groupCache = new LinkedHashMap<>(CACHE_SIZE, 0.75f, true) {
+        protected boolean removeEldestEntry(Map.Entry<String, List<Group>> eldest) {
+            return size() > CACHE_SIZE;
+        }
+    };
+
+    // Peer Discovery für Nutzer mit Cache
+    public List<User> peer(String search, List<User> users) {
+        if (userCache.containsKey(search)) {
+            System.out.println("Cache hit for User search: " + search);
+            return userCache.get(search);
+        }
+
+        System.out.println("Cache miss - performing search for Users: " + search);
+        List<User> foundUsers = new ArrayList<>();
+        for (User user : users) {
+            if (user.getInterests().contains(search)) {
+                sendRequest(user, false);
+                foundUsers.add(user);
             }
         }
-        System.out.println("User has not the same interests as you");
-        return null;
+
+        // Speichern des Ergebnisses im Cache
+        userCache.put(search, foundUsers);
+        return foundUsers;
     }
 
-    // Prüft, ob Gruppe gesuchte Interesse teilt
-    public Group peerGoup(String search, Group group){
-        for(String interest: group.getInterests()){
-            if(interest.equals(search)){
-                sendGroupRequest(group.getAdmin());
-                return group;
+    // Peer Discovery für Gruppen mit Cache
+    public List<Group> peerGroup(String search, List<Group> groups) {
+        if (groupCache.containsKey(search)) {
+            System.out.println("Cache hit for Group search: " + search);
+            return groupCache.get(search);
+        }
+
+        System.out.println("Cache miss - performing search for Groups: " + search);
+        List<Group> foundGroups = new ArrayList<>();
+        for (Group group : groups) {
+            if (group.getInterests().contains(search)) {
+                sendRequest(group.getAdmin(), true);
+                foundGroups.add(group);
             }
         }
-        System.out.println("Group has not the same interests as you");
-        return null;
+
+        // Speichern des Ergebnisses im Cache
+        groupCache.put(search, foundGroups);
+        return foundGroups;
     }
 
-
-    // sendet Freundschaftsanfrage an Nutzer
-    public void sendUserRequest(User recipient){
+    // Freundschafts- oder Gruppenbeitrittsanfrage senden
+    private void sendRequest(User recipient, boolean isGroup) {
         try (DatagramSocket socket = new DatagramSocket()) {
             InetSocketAddress recipientAddress = (InetSocketAddress) recipient.getEndpoint();
-        
-            // Erstellen einer ChatMessage, die Freundschaftsanfrage beinhaltet
-            ChatMessage requestMessage = new ChatMessage(recipient.getUserId(), "Hey, I would like to be your friend:)");
-        
-            // Serialisieren der Nachricht
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            DataOutputStream dos = new DataOutputStream(baos);
-            requestMessage.toStream(dos);
-            byte[] msgBytes = baos.toByteArray();
+            String message = isGroup ? "Hey, I would like to join your Group:)" : "Hey, I would like to be your friend:)";
 
-            // DatagramPacket erstellen
+            // Nachricht serialisieren
+            byte[] msgBytes = message.getBytes();
             DatagramPacket packet = new DatagramPacket(msgBytes, msgBytes.length, recipientAddress);
 
-            // Nachricht senden
             socket.send(packet);
-            System.out.println("ChatMessage sent to " + recipient.getUserId() + ": " + requestMessage.getMessage());
+            System.out.println("Request sent to " + recipient.getUserId() + ": " + message);
 
         } catch (Exception e) {
-            System.err.println("Error sending ChatMessage to " + recipient.getUserId() + ": " + e.getMessage());
-        }
-    }
-
-
-    // sendet Beitrittsanfrage an Administrator der Gruppe
-    public void sendGroupRequest(User recipient){
-        try (DatagramSocket socket = new DatagramSocket()) {
-            InetSocketAddress recipientAddress = (InetSocketAddress) recipient.getEndpoint();
-        
-            // Erstellen einer ChatMessage, die Gruppenbeitrittsanfrage beinhaltet
-            ChatMessage requestMessage = new ChatMessage(recipient.getUserId(), "Hey, I would like to join your Group:)");
-        
-            // Serialisieren der Nachricht
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            DataOutputStream dos = new DataOutputStream(baos);
-            requestMessage.toStream(dos);
-            byte[] msgBytes = baos.toByteArray();
-
-            // DatagramPacket erstellen
-            DatagramPacket packet = new DatagramPacket(msgBytes, msgBytes.length, recipientAddress);
-
-            // Nachricht senden
-            socket.send(packet);
-            System.out.println("ChatMessage sent to " + recipient.getUserId() + ": " + requestMessage.getMessage());
-
-        } catch (Exception e) {
-            System.err.println("Error sending ChatMessage to " + recipient.getUserId() + ": " + e.getMessage());
+            System.err.println("Error sending request: " + e.getMessage());
         }
     }
 }

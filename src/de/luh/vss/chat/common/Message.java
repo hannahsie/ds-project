@@ -161,54 +161,6 @@ public abstract class Message {
 		}
 	}
 
-	public static class GroupMessage extends Message {
-		private final UserId sender;
-		private final UserId recipient;
-		private final String msg;
-	
-		public GroupMessage(UserId sender, UserId recipient, String msg) {
-			this.sender = sender;
-			this.recipient = recipient;
-			this.msg = msg;
-		}
-	
-		public GroupMessage(DataInputStream in) throws IOException {
-			this.sender = new UserId(in.readInt());
-			this.recipient = new UserId(in.readInt());
-			this.msg = in.readUTF();
-		}
-	
-		@Override
-		public void toStream(DataOutputStream out) throws IOException {
-			out.writeInt(MessageType.GROUP_MESSAGE.msgType());
-			out.writeInt(sender.id());
-			out.writeInt(recipient.id());
-			out.writeUTF(msg);
-		}
-	
-		@Override
-		public MessageType getMessageType() {
-			return MessageType.GROUP_MESSAGE;
-		}
-	
-		@Override
-		public String toString() {
-			return "GROUP_MESSAGE (from " + sender + " to " + recipient + ": '" + msg + "')";
-		}
-	
-		public UserId getSender() {
-			return sender;
-		}
-	
-		public UserId getRecipient() {
-			return recipient;
-		}
-	
-		public String getMessage() {
-			return msg;
-		}
-	}
-
 	public static Message parse(final DataInputStream in) throws IOException, ReflectiveOperationException {
 		return MessageType.fromInt(in.readInt(), in);
 	}

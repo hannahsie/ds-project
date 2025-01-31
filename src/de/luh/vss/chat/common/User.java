@@ -1,20 +1,22 @@
 package de.luh.vss.chat.common;
 
 import java.net.SocketAddress;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 
 public class User {
 
 	private final UserId userId;
 	private final SocketAddress endpoint;
-	private final List<String> interests; // Interessen des Users in einer Liste
-	private final List<User> friends; // Liste an "Freunden" des Users
+	private final HashSet<String> interests = new HashSet<>(); // Interessen des Users in einer Liste
+	private final HashSet<User> friends = new HashSet<>(); // Liste an "Freunden" des Users
 
-	public User(UserId userId, SocketAddress endpoint, List<String> interests, List<User> friends) {
+	public User(UserId userId, SocketAddress endpoint) {
 		this.userId = userId;
 		this.endpoint = endpoint;
-		this.interests = interests;
-		this.friends = friends; 
 	}
 
 	public UserId getUserId() {
@@ -26,67 +28,50 @@ public class User {
 	}
 
 	// Gibt Interessen des Users in Liste wieder
-	public List<String> getInterests() {
+	public Set<String> getInterests() {
 		return interests;
 	}
 
-	// Fügt eine Interesse zur Liste hinzu
-	public void addtInterest(String interest){
-		if(interests == null){
-			interests.add(interest);
-		}
-		for(String check : interests){
-            if(check == interest){
-                System.out.println("Interest already in list");
-                return;
-            }
+	// Fügt Interesse in Liste, sofern noch nicht enthalten 
+	public void addInterest(String interest) {
+        if (!interests.contains(interest)) {
+            interests.add(interest);
+        } else {
+            System.out.println("Interest already in list");
         }
-		interests.add(interest);
+    }
+
+	// Entfernt Intersse aus Gruppe, sofern enthalten 
+    public void removeInterest(String interest) {
+        if (interests.remove(interest)) {
+            System.out.println("Interest removed");
+        } else {
+            System.out.println("Interest not in list");
+        }
+    }
+	
+	// Gibt Freundesliste zurück
+	public Set<User> getFriends (){
+		return friends;
 	}
 
-	// Entfernt Interesse aus Liste, sofern vorhanden
-	public void removeInterest(String interest){
-		if(interests == null){
-			System.out.println("no interest in list");
-			return;
-		}
-		for(String check : interests){
-            if(check == interest){
-                interests.remove(interest);
-                return;
-            }
+	// Fügt user in Freundesliste, sofern noch nicht enthalten 
+    public void addFriend(User friend) {
+        if (!friends.contains(friend)) {
+            friends.add(friend);
+        } else {
+            System.out.println("Friend already in list");
         }
-        System.out.println("interest not in list");
-	}
+    }
 
-	// Fügt einen User zur Freundesliste
-	public void addfriend(User friend){
-		if(friends == null){
-			friends.add(friend);
-		}
-		for(User check : friends){
-            if(check == friend){
-                System.out.println("friend already in list");
-                return;
-            }
+	// Entfernt user aus Freundesliste, sofern enthalten 
+    public void removeFriend(User friend) {
+        if (friends.remove(friend)) {
+            System.out.println("Friend removed");
+        } else {
+            System.out.println("Friend not in list");
         }
-		friends.add(friend);
-	}
-
-	// Entfernt User aus Freundesliste, sofern vorhanden
-	public void removefriend(User friend){
-		if(friends == null){
-			System.out.println("no friend in list");
-			return;
-		}
-		for(User check : friends){
-            if(check == friend){
-                friends.remove(friend);
-                return;
-            }
-        }
-        System.out.println("friend not in list");
-	}
+    }
 
 
 	public record UserId(int id) {

@@ -1,57 +1,86 @@
 package de.luh.vss.chat.common;
 
+import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadMXBean;
 import java.lang.management.MemoryMXBean;
 import java.lang.management.MemoryUsage;
 import java.net.InetSocketAddress;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
 import com.sun.management.OperatingSystemMXBean;
 
 public class ManualPerformanceTest {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
         OperatingSystemMXBean osBean = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
         MemoryMXBean memoryBean = ManagementFactory.getMemoryMXBean();
 
-        User admin = new User(new User.UserId(1), new InetSocketAddress("localhost", 8080), Arrays.asList("coding"), null);
-        User member1 = new User(new User.UserId(2), new InetSocketAddress("localhost", 8081), Arrays.asList("gaming"), null);
-        User member2 = new User(new User.UserId(3), new InetSocketAddress("localhost", 8082), Arrays.asList("music", "gaming"), null);
-        Group group = new Group("DevGroup", admin, List.of("coding"));
+        User admin = new User(new User.UserId(1), new InetSocketAddress("localhost", 8080));
+        User member1 = new User(new User.UserId(2), new InetSocketAddress("localhost", 8081));
+        User member2 = new User(new User.UserId(3), new InetSocketAddress("localhost", 8082));
+        Group group1 = new Group("DevGroup", admin);
+        Group group2 = new Group("testGroup", admin);
+        List<User> users = new ArrayList<>();
+        List<Group> groups = new ArrayList<>();        
         PeerDiscoveryService discoveryService = new PeerDiscoveryService();
 
         measurePerformance("Group Creation", () -> {
-            new Group("TestGroup", admin, List.of("AI"));
+            try {
+                new Group("TestGroup", admin);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }, threadMXBean, osBean, memoryBean);
 
         measurePerformance("Add Member", () -> {
-            group.addMember(member1);
+            group1.addMember(member1);
         }, threadMXBean, osBean, memoryBean);
 
         measurePerformance("Add Member", () -> {
-            group.addMember(member2);
+            group1.addMember(member2);
         }, threadMXBean, osBean, memoryBean);
 
         measurePerformance("Send Group Message", () -> {
-            Message message = new Message.ChatMessage(admin.getUserId(), "Hello Group!");
-            group.handleGroupMessage(message, admin);
+            group1.sendGroupMessage(admin, "Hello Group");
         }, threadMXBean, osBean, memoryBean);
 
         measurePerformance("Remove Member", () -> {
-            group.removeMember(member1);
+            group1.removeMember(member1);
         }, threadMXBean, osBean, memoryBean);
 
+        measurePerformance("Add Interest", () -> {
+            member2.addInterest("gaming");
+        }, threadMXBean, osBean, memoryBean);
+
+        measurePerformance("Add Interest", () -> {
+            member2.addInterest("coding");
+        }, threadMXBean, osBean, memoryBean);
+
+        admin.addInterest("coding");
+        member1.addInterest("gaming");
+        users.add(admin);
+        users.add(member1);
+        users.add(member2);
+
         measurePerformance("Peer Discovery (User)", () -> {
-            discoveryService.peer("gaming", member1);
+            discoveryService.peer("gaming", users);
         }, threadMXBean, osBean, memoryBean);
 
         measurePerformance("Add Friend", () -> {
-            member2.addfriend(member1);
+            member1.addFriend(member2);
         }, threadMXBean, osBean, memoryBean);
 
+        measurePerformance("Add Interst", () -> {
+            group1.addGroupInterest("coding");
+        }, threadMXBean, osBean, memoryBean);
+
+        group2.addGroupInterest("gaming");
+        groups.add(group1);
+        groups.add(group2);
+
         measurePerformance("Peer Discovery (Group)", () -> {
-            discoveryService.peerGoup("coding", group);
+            discoveryService.peerGroup("coding", groups);
         }, threadMXBean, osBean, memoryBean);
         
     }
